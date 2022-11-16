@@ -1,3 +1,9 @@
+#!/usr/bin/env python3.7
+
+# Copyright (C) Aryason Consulting - All Rights Reserved
+# Unauthorized copying of this project, via any medium is strictly prohibited
+# Proprietary and confidential
+
 from flask import Flask, request, make_response, jsonify
 from flask_restful import Api, Resource
 from functools import wraps
@@ -177,8 +183,6 @@ class simple_form(Resource):
         # Save Excel
         data = json.loads(request.form['data'])
         for i, row in enumerate(data):
-            print(row['az'], row['hma'], row['nb_coax'], row['type_coax'], row['commentaire'])
-            print(i)
             ws['B' + str(i + 4)].value = row['Type']  # type
             ws['K' + str(i + 4)].value = row['Diametre']  # diametre
             ws['P' + str(i + 4)].value = row['constructeur']  # constructueur
@@ -193,7 +197,7 @@ class simple_form(Resource):
         files = request.files
         file_argument = 'photo_simplified'
         if file_argument in files:
-            file = files.get(file_argument)
+            file = files[file_argument]
             file_extension = file.filename.split('.')[1].lower()
             file_name = 'photo' + '.' + file_extension
             # Save file
@@ -541,11 +545,10 @@ class detailed_form(Resource):
         # https://roytuts.com/python-flask-rest-api-file-upload/
         for i in range(1, trancons_number + 1):
 
-            for element in ['troncon', 'membrure', 'diagonale', 'traverse', 'bride']:
+            for element in ['troncon', 'membrures', 'diagonales', 'traverses', 'bride']:
 
                 file_argument = element + '_' + str(i)
                 if file_argument in request.files:
-
                     file = request.files[file_argument]
                     if file:
                         # Create file name
@@ -611,4 +614,4 @@ api.add_resource(simple_form, '/simple_form')
 api.add_resource(detailed_form, '/detailed_form')
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
