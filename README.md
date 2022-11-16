@@ -66,4 +66,4 @@ python app.py
 ## License
 
 This program is proprietary.
-<br>See [LICENSE](LICENSE) for more information.
+<br>See [LICENSE](LICENSE.txt) for more information.
