@@ -17,7 +17,7 @@ def trancon_by_numero(data_, numero):
 
 def section(element):
 
-    if element['tube']:
+    if element['tube'] == 'true':
         return 'CHS-' + str(float(element['diametre']) * float(element['epaisseur']))
     else:
         return 'LS-' + str(float(element['b']) * float(element['H']) * float(element['epaisseur']))
