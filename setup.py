@@ -4,7 +4,7 @@ base = None
 target_name = "technical_visit.exe"
 icon = "data/aryatowers.ico"
 include_files = ['data', 'technical_visits']
-packages = ["flask", "flask_restful", "functools", "re", "json", "os", "flask_cors", "passlib"]
+packages = ["flask", "flask_restful", "functools", "re", "json", "os", "flask_cors", "passlib", "math"]
 source_file = "app.py"
 
 options = {

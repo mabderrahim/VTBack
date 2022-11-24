@@ -15,6 +15,7 @@ from excel_generator import generate_excel_file
 from datetime import datetime
 import database
 import openpyxl
+from math import sin, cos, sqrt, atan2, radians
 
 UPLOAD_FOLDER = 'technical_visits'
 
@@ -56,7 +57,7 @@ class Authentication(Resource):
         return codes_site
 
 
-def get_troncons_number_and_height(code_site):
+def get_troncons_number_and_height_by_code_site(code_site):
     try:
         if code_site.isnumeric():
             code_site = int(code_site)
@@ -217,6 +218,74 @@ class simple_form(Resource):
         return True
 
 
+def distance_as_the_crow_flies(latitude_1, longitude_1, latitude_2, longitude_2):
+    # Source : https://stackoverflow.com/questions/19412462/getting-distance-between-two-points-based-on-latitude-longitude
+
+    # approximate radius of earth in km
+    R = 6373.0
+
+    latitude_1 = radians(float(latitude_1))
+    longitude_1 = radians(float(longitude_1))
+    latitude_2 = radians(float(latitude_2))
+    longitude_2 = radians(float(longitude_2))
+
+    dlon = longitude_2 - longitude_1
+    dlat = latitude_2 - latitude_1
+
+    a = sin(dlat / 2) ** 2 + cos(latitude_1) * cos(latitude_2) * sin(dlon / 2) ** 2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    distance = R * c
+
+    return distance
+
+
+def get_troncons_number_and_height_by_coordinates(latitude, longitude):
+
+    distances = []
+
+    wb = openpyxl.load_workbook('./data/sites.xlsx')
+    ws = wb.active
+    row = 2
+    while ws['A' + str(row)].value is not None:
+        latitude_2 = ws['AD' + str(row)].value
+        longitude_2 = ws['AE' + str(row)].value
+        if latitude_2 is None or longitude_2 is None:
+            latitude_2 = '0'
+            longitude_2 = '0'
+        distance = distance_as_the_crow_flies(latitude, longitude, latitude_2.replace(',', '.'), longitude_2.replace(',', '.'))
+        distances.append(distance)
+        row += 1
+
+    row = 2 + distances.index(min(distances))
+    code_site = ws['A' + str(row)].value
+
+    if ws['Z' + str(row)].value is not None:
+        height = float(ws['Z' + str(row)].value)
+    else:
+        height = 0
+    troncons_number = round(height / 6)
+
+    return troncons_number, height, code_site
+
+
+def is_location_correct(code_site, longitude, latitude):
+    wb = openpyxl.load_workbook('./data/sites.xlsx')
+    ws = wb.active
+    row = 2
+
+    while ws['A' + str(row)].value is not None and ws['A' + str(row)].value != code_site:
+        row += 1
+
+    latitude_site = ws['AD' + str(row)].value
+    longitude_site = ws['AE' + str(row)].value
+    distance = distance_as_the_crow_flies(latitude, longitude, latitude_site, longitude_site)
+
+    max_autorised_distance = 50
+
+    return distance < max_autorised_distance
+
+
 class data(Resource):
 
     @auth_required
@@ -227,12 +296,20 @@ class data(Resource):
         longitude = args.get('longitude', default=None)
         if latitude == '0' and longitude == '0':
             return 'Le code site est incorrect', 400
-        if code_site is None:
-            return 'Code site manquant', 400
-        troncons_number, height = get_troncons_number_and_height(code_site)
-        data = get_data(troncons_number)
+        if code_site is None and (latitude is None or longitude is None) :
+            return 'Code site, latitude ou longitude manquant', 400
+        if (latitude is None or longitude is None) and code_site is not None :
+            troncons_number, height = get_troncons_number_and_height_by_code_site(code_site)
+        elif code_site is None and latitude is not None and longitude is not None:
+            troncons_number, height, code_site = get_troncons_number_and_height_by_coordinates(latitude, longitude)
+        else:
+            if not is_location_correct(code_site, longitude, latitude):
+                return False
+            troncons_number, height = get_troncons_number_and_height_by_code_site(code_site)
 
-        return jsonify({'nombre_troncon': troncons_number, 'hauteur': height, 'data': data})
+        data = get_data(troncons_number) # code_site should be also a prameter when linked to the database
+
+        return jsonify({'nombre_troncon': troncons_number, 'hauteur': height, 'code_site':code_site, 'data': data})
 
 
 def data_type(v):
@@ -371,7 +448,7 @@ class detailed_form(Resource):
             return 'Invalid input Key Error : ' + str(error), 400
 
         # Check that the sent number of trancons is correct
-        trancons_number, _ = get_troncons_number_and_height(code_site)
+        trancons_number, _ = get_troncons_number_and_height_by_code_site(code_site)
         gotten_trancons_number = len(data['trancons'])
         if gotten_trancons_number != trancons_number:
             return 'Gotten trancons number is incorrect', 400
