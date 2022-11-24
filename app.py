@@ -42,10 +42,20 @@ class Authentication(Resource):
 
     @auth_required
     def get(self):
-        return True
+
+        wb = openpyxl.load_workbook('./data/sites.xlsx')
+        ws = wb.active
+
+        codes_site = []
+
+        row = 2
+        while ws['A' + str(row)].value is not None:
+            codes_site.append(ws['A' + str(row)].value)
+            row += 1
+
+        return codes_site
 
 
-# TODO: link with the data base
 def get_troncons_number_and_height(code_site):
     try:
         if code_site.isnumeric():
@@ -58,12 +68,13 @@ def get_troncons_number_and_height(code_site):
     finally:
         wb = openpyxl.load_workbook('./data/sites.xlsx')
         ws = wb.active
-        total_number_of_rows = 6041
         row_found = False
-        for row in range(1, total_number_of_rows + 1):
+        row = 1
+        while ws['A' + str(row)].value is not None:
             if str(ws['A' + str(row)].value).strip() == str(code_site).strip():
                 row_found = True
                 break
+            row += 1
         if row_found:
             if ws['Z' + str(row)].value is not None:
                 height = float(ws['Z' + str(row)].value)
@@ -250,177 +261,6 @@ def data_type(v):
 #     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-class Technical_visit(Resource):
-
-    @auth_required
-    def post(self):
-
-        # # Input validation : code site
-        # try:
-        #     code_site = int(request.form['code_site'])
-        # except ValueError as error:
-        #     return 'Invalid input code_site : ' + str(error), 400
-        #
-        # # Input validation : data
-        # try:
-        #     data = json.loads(request.form['data'])
-        #     print('data', data)
-        #
-        # except JSONDecodeError as error:
-        #     return 'Invalid input data : ' + str(error), 400
-        # try:
-        #     for trancon in data['trancons']:
-        #
-        #         numero = trancon['numero']
-        #         zsup = trancon['zsup']
-        #         bsup = trancon['bsup']
-        #         if data_type(numero) != 'int':
-        #             return 'Invalid input numero', 400
-        #         if data_type(zsup) not in ['float', 'int']:
-        #             return 'Invalid input zsup', 400
-        #         if data_type(bsup) not in ['float', 'int']:
-        #             return 'Invalid input bsup', 400
-        #
-        #         for tp in ['membrures', 'diagonales', 'traverses']:
-        #
-        #             tube = trancon[tp]['tube']
-        #             longueur = trancon[tp]['longueur']
-        #             epaisseur = trancon[tp]['epaisseur']
-        #             diametre = trancon[tp]['diametre']
-        #             materiau = trancon[tp]['materiau']
-        #             b = trancon[tp]['b']
-        #             h = trancon[tp]['H']
-        #
-        #             if data_type(longueur) not in ['float', 'int']:
-        #                 return 'Invalid input ' + tp + ' longueur', 400
-        #             if data_type(epaisseur) not in ['float', 'int']:
-        #                 return 'Invalid input ' + tp + ' epaisseur', 400
-        #             if data_type(tube) != 'bool':
-        #                 return 'Invalid input ' + tp + ' tube', 400
-        #             if tube:
-        #                 if data_type(diametre) not in ['float', 'int']:
-        #                     return 'Invalid input ' + tp + ' diametre', 400
-        #             else:
-        #                 if data_type(b) not in ['float', 'int']:
-        #                     return 'Invalid input ' + tp + ' b', 400
-        #                 if data_type(h) not in ['float', 'int']:
-        #                     return 'Invalid input ' + tp + ' H', 400
-        #             if materiau not in type_materiau_general:
-        #                 return 'Invalid input ' + materiau + ' materiau', 400
-        #
-        #         if numero == 1:
-        #
-        #             mat_tiges = trancon['mat_tiges']
-        #             mat_plaque = trancon['mat_plaque']
-        #             nb_tiges = trancon['nb_tiges']
-        #             binf = trancon['binf']
-        #             zinf = trancon['zinf']
-        #
-        #             if mat_tiges not in type_materiau_boulon_tige:
-        #                 return 'Invalid input ' + mat_tiges + ' mat_tiges', 400
-        #             if mat_plaque not in type_materiau_general:
-        #                 return 'Invalid input ' + mat_plaque + ' mat_plaque', 400
-        #             if data_type(nb_tiges) != 'int':
-        #                 return 'Invalid input ' + nb_tiges + ' nb_tiges', 400
-        #             if data_type(binf) not in ['int', 'float']:
-        #                 return 'Invalid input ' + binf + ' binf', 400
-        #             if data_type(zinf) not in ['int', 'float']:
-        #                 return 'Invalid input ' + zinf + ' zinf', 400
-        #
-        #         else:
-        #
-        #             mat_boulon = trancon['mat_boulon']
-        #             mat_bride = trancon['mat_bride']
-        #             nb_boulons = trancon['nb_boulons']
-        #
-        #             if mat_boulon not in type_materiau_boulon_tige:
-        #                 return 'Invalid input ' + mat_boulon + ' mat_tiges', 400
-        #             if mat_bride not in type_materiau_general:
-        #                 return 'Invalid input ' + mat_bride + ' mat_plaque', 400
-        #             if data_type(nb_boulons) != 'int':
-        #                 return 'Invalid input ' + nb_boulons + ' nb_tiges', 400
-        #
-        #     hms = data['hms']
-        #     lf = data['lf']
-        #     hf = data['hf']
-        #     h = data['h']
-        #     a = data['a']
-        #     b = data['b']
-        #     elu = data['elu']
-        #     els = data['els']
-        #     commentaire = data['commentaire']
-        #     if data_type(hms) not in ['float', 'int']:
-        #         return 'Invalid input hms', 400
-        #     if data_type(lf) not in ['float', 'int']:
-        #         return 'Invalid input lf', 400
-        #     if data_type(hf) not in ['float', 'int']:
-        #         return 'Invalid input hf', 400
-        #     if data_type(h) not in ['float', 'int']:
-        #         return 'Invalid input h', 400
-        #     if data_type(a) not in ['float', 'int']:
-        #         return 'Invalid input a', 400
-        #     if data_type(b) not in ['float', 'int']:
-        #         return 'Invalid input b', 400
-        #     if data_type(elu) not in ['float', 'int']:
-        #         return 'Invalid input elu', 400
-        #     if data_type(els) not in ['float', 'int']:
-        #         return 'Invalid input elu', 400
-        #
-        # except KeyError as error:
-        #     return 'Invalid input Key Error : ' + str(error), 400
-        #
-        # # Check that the sent number of trancons is correct
-        # trancons_number = get_trancons_number(code_site)
-        # gotten_trancons_number = len(data['trancons'])
-        # if gotten_trancons_number != trancons_number:
-        #     return 'Gotten trancons number is incorrect', 400
-
-        # Input validation : photos
-        # https://roytuts.com/python-flask-rest-api-file-upload/
-        trancons_number = code_site = 1
-        for i in range(1, trancons_number + 1):
-
-            file_argument = 'photo_' + str(i)
-            # if file_argument not in request.files:
-            #     print('Missing argument photo_' + str(i))
-            #     return 'Missing argument photo_' + str(i), 400
-            print('*')
-            file = request.files[file_argument]
-            print('a')
-            # file = request.form['photo_1']
-            if file.filename == '':
-                print('Missing photo ' + str(i))
-                return 'Missing photo ' + str(i), 400
-            print('b')
-            if file:
-                print('file')
-            if file:
-                print('c')
-                if i == 1:
-                    # Create path to save file
-                    dt = datetime.now()
-                    folder_name = str(code_site) + '_' + str(dt).replace(' ', '_').replace('.', '_').replace(':', '_')
-                    folder_path = os.path.join('.', UPLOAD_FOLDER, folder_name)
-                    os.mkdir(folder_path)
-                print('d')
-                # Create file name
-                # file_name = secure_filename(file.filename)
-                file_extension = 'JPG'  # file.filename.split('.')[1].lower() ##
-                file_name = 'troncon_' + str(i) + '.' + file_extension
-                print('e')
-                # Save file
-                # file.
-                # file.save(os.path.join(folder_path, file_name))
-                files = request.files
-                file = files.get('photo_1')
-                # with open(os.path.abspath(f'./magic_file.JPG'), 'wb') as f:
-                #     f.write(file.content)
-                # print('f')
-        # generate_excel_file(code_site_=code_site, data_=data, file_name_=os.path.join(folder_path, 'VT.xlsx'))
-
-        return True
-
-
 class detailed_form(Resource):
 
     @auth_required
@@ -573,42 +413,7 @@ class detailed_form(Resource):
         return True
 
 
-def file_upload_3():
-    import base64
-
-    files = request.files
-    file = files.get('photo_1')
-
-    # Save the binary blob as base64
-    with open('file.JPG', 'wb') as f_vid:
-        f_vid.write(base64.b64encode(file))
-
-
-@app.route("/technical_visit", methods=['post'])
-def file_upload_1():
-    files = request.files
-    file = files.get('photo_1')
-    file.save('./test.txt')
-
-    # print(request.form['photo_1'])
-    # request.form['photo_1'].save('./test.txt')
-
-    return 'ok'
-
-
-def file_upload_2():
-    files = request.files
-    file = files.get('photo_1')
-    print(file)
-
-    with open(os.path.abspath(f'magic.JPG'), 'wb') as f:
-        f.write(file.content)
-
-    return 'ok'
-
-
 api.add_resource(Authentication, '/authentication')
-api.add_resource(Technical_visit, '/technical_visit')
 api.add_resource(data, '/data')
 api.add_resource(simple_form, '/simple_form')
 api.add_resource(detailed_form, '/detailed_form')
