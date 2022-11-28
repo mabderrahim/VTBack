@@ -145,7 +145,7 @@ def get_data(trancons_number):
         "b": "",
         "elu": "",
         "els": "200.5",
-        "commentaire": "test commentaire"
+        "commentaire": ""
     }
     for i in range(trancons_number):
         trancon['numero'] = i + 1
