@@ -43,7 +43,6 @@ class Authentication(Resource):
 
     @auth_required
     def get(self):
-
         wb = openpyxl.load_workbook('./data/sites.xlsx')
         ws = wb.active
 
@@ -57,14 +56,16 @@ class Authentication(Resource):
         return codes_site
 
 
-def get_troncons_number_and_height_by_code_site(code_site):
+def get_site_information_by_code_site(code_site):
     try:
         if code_site.isnumeric():
             code_site = int(code_site)
             if code_site < 100:
                 troncons_number = code_site
                 height = troncons_number * 6
-                return troncons_number, height
+                address = "adresse"
+                departement = 75000
+                return troncons_number, height, address, departement
 
     finally:
         wb = openpyxl.load_workbook('./data/sites.xlsx')
@@ -81,12 +82,16 @@ def get_troncons_number_and_height_by_code_site(code_site):
                 height = float(ws['Z' + str(row)].value)
             else:
                 height = 0
+            address = ws['O' + str(row)].value
+            departement = ws['P' + str(row)].value
             troncons_number = round(height / 6)
         else:
             troncons_number = 1
             height = 6
+            address = "adresse"
+            departement = 75000
 
-    return troncons_number, height
+    return troncons_number, height, address, departement
 
 
 # TODO: link with the database
@@ -240,8 +245,7 @@ def distance_as_the_crow_flies(latitude_1, longitude_1, latitude_2, longitude_2)
     return distance
 
 
-def get_troncons_number_and_height_by_coordinates(latitude, longitude):
-
+def get_site_information_by_coordinates(latitude, longitude):
     distances = []
 
     wb = openpyxl.load_workbook('./data/sites.xlsx')
@@ -253,7 +257,8 @@ def get_troncons_number_and_height_by_coordinates(latitude, longitude):
         if latitude_2 is None or longitude_2 is None:
             latitude_2 = '0'
             longitude_2 = '0'
-        distance = distance_as_the_crow_flies(latitude, longitude, latitude_2.replace(',', '.'), longitude_2.replace(',', '.'))
+        distance = distance_as_the_crow_flies(latitude, longitude, latitude_2.replace(',', '.'),
+                                              longitude_2.replace(',', '.'))
         distances.append(distance)
         row += 1
 
@@ -266,7 +271,10 @@ def get_troncons_number_and_height_by_coordinates(latitude, longitude):
         height = 0
     troncons_number = round(height / 6)
 
-    return troncons_number, height, code_site
+    address = ws['O' + str(row)].value
+    departement = ws['P' + str(row)].value
+
+    return troncons_number, height, address, departement, code_site
 
 
 def is_location_correct(code_site, longitude, latitude):
@@ -296,20 +304,21 @@ class data(Resource):
         longitude = args.get('longitude', default=None)
         if latitude == '0' and longitude == '0':
             return 'Le code site est incorrect', 400
-        if code_site is None and (latitude is None or longitude is None) :
+        if code_site is None and (latitude is None or longitude is None):
             return 'Code site, latitude ou longitude manquant', 400
-        if (latitude is None or longitude is None) and code_site is not None :
-            troncons_number, height = get_troncons_number_and_height_by_code_site(code_site)
+        if (latitude is None or longitude is None) and code_site is not None:
+            troncons_number, height, address, departement = get_site_information_by_code_site(code_site)
         elif code_site is None and latitude is not None and longitude is not None:
-            troncons_number, height, code_site = get_troncons_number_and_height_by_coordinates(latitude, longitude)
+            troncons_number, height, address, departement, code_site = get_site_information_by_coordinates(latitude, longitude)
         else:
             if not is_location_correct(code_site, longitude, latitude):
                 return False
-            troncons_number, height = get_troncons_number_and_height_by_code_site(code_site)
+            troncons_number, height, address, departement = get_site_information_by_code_site(code_site)
 
-        data = get_data(troncons_number) # code_site should be also a prameter when linked to the database
+        data = get_data(troncons_number)  # code_site should be also a prameter when linked to the database
 
-        return jsonify({'nombre_troncon': troncons_number, 'hauteur': height, 'code_site':code_site, 'data': data})
+        return jsonify({'nombre_troncon': troncons_number, 'hauteur': height, 'code_site': code_site,
+                        'adresse': address, 'departement': departement, 'data': data})
 
 
 def data_type(v):
@@ -448,10 +457,10 @@ class detailed_form(Resource):
             return 'Invalid input Key Error : ' + str(error), 400
 
         # Check that the sent number of trancons is correct
-        trancons_number, _ = get_troncons_number_and_height_by_code_site(code_site)
-        gotten_trancons_number = len(data['trancons'])
-        if gotten_trancons_number != trancons_number:
-            return 'Gotten trancons number is incorrect', 400
+        # trancons_number, _, _, _ = get_site_information_by_code_site(code_site)
+        # gotten_trancons_number = len(data['trancons'])
+        # if gotten_trancons_number != trancons_number:
+        #     return 'Gotten trancons number is incorrect', 400
 
         dt = datetime.now()
         folder_name = str(code_site) + '_' + str(dt).replace(' ', '_').replace('.', '_').replace(':', '_')
@@ -460,7 +469,7 @@ class detailed_form(Resource):
 
         # Input validation : photos
         # https://roytuts.com/python-flask-rest-api-file-upload/
-        for i in range(1, trancons_number + 1):
+        for i in range(1, len(data['trancons']) + 1):
 
             for element in ['troncon', 'membrures', 'diagonales', 'traverses', 'bride']:
 
